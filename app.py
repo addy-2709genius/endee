@@ -173,17 +173,18 @@ with right:
             st.session_state.messages = []
  
         for msg in st.session_state.messages:
-            with st.chat_message(msg["role"]):
+            avatar = "🧑‍💻" if msg["role"] == "user" else "🤖"
+            with st.chat_message(msg["role"], avatar=avatar):
                 st.markdown(msg["content"])
                 if msg.get("sources"):
                     st.caption("Source: " + ", ".join(msg["sources"]))
- 
+
         if query := st.chat_input("Ask a question about your documents"):
             st.session_state.messages.append({"role": "user", "content": query})
-            with st.chat_message("user"):
+            with st.chat_message("user", avatar="🧑‍💻"):
                 st.markdown(query)
- 
-            with st.chat_message("assistant"):
+
+            with st.chat_message("assistant", avatar="🤖"):
                 with st.spinner("Thinking..."):
                     result = ask(query)
                 st.markdown(result["answer"])
