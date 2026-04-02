@@ -15,7 +15,6 @@ from rag_app.config import (
 
 
 def load_index():
-    """Load embeddings, chunks and metadata from disk."""
     embeddings = np.load(os.path.join(INDEX_DIR, "embeddings.npy"))
 
     with open(os.path.join(INDEX_DIR, "chunks.json"), "r") as f:
@@ -28,18 +27,12 @@ def load_index():
 
 
 def cosine_similarity(query_vec: np.ndarray, embeddings: np.ndarray) -> np.ndarray:
-    """Compute cosine similarity between query and all chunk embeddings."""
     query_norm = query_vec / np.linalg.norm(query_vec)
     embeddings_norm = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
     return np.dot(embeddings_norm, query_norm)
 
 
 def retrieve_chunks(query: str, top_k: int = TOP_K) -> tuple[list[str], list[dict]]:
-    """
-    Embed the query and retrieve top-k most similar chunks
-    using cosine similarity — no external vector DB call needed here,
-    Endee handles the vector storage layer.
-    """
     model = SentenceTransformer(EMBEDDING_MODEL)
     embeddings, chunks, metadata = load_index()
 
@@ -54,12 +47,11 @@ def retrieve_chunks(query: str, top_k: int = TOP_K) -> tuple[list[str], list[dic
 
 
 def generate_answer(query: str, context_chunks: list[str]) -> str:
-    """Send retrieved context + question to Groq LLM and get answer."""
     client = Groq(api_key=GROQ_API_KEY)
     context = format_context(context_chunks)
 
-    prompt = f"""You are a helpful AI assistant. Answer the user's question 
-based strictly on the provided context. If the answer is not in the context, 
+    prompt = f"""You are a helpful AI assistant. Answer the user's question
+based strictly on the provided context. If the answer is not in the context,
 say "I could not find relevant information in the document."
 
 Context:
@@ -80,7 +72,6 @@ Answer:"""
 
 
 def ask(query: str) -> dict:
-    """Full RAG pipeline: retrieve + generate."""
     chunks, metadata = retrieve_chunks(query)
     answer = generate_answer(query, chunks)
 
