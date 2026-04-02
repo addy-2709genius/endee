@@ -12,44 +12,23 @@ st.set_page_config(
  
 st.markdown("""
     <style>
-        /* ── Force light mode regardless of system/browser theme ── */
-        :root {
-            color-scheme: light !important;
+        html, body, [class*="css"] {
+            font-family: 'Georgia', serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
         }
-
-        html, body,
-        [data-testid="stAppViewContainer"],
-        [data-testid="stApp"],
-        [data-testid="stMain"],
-        [data-testid="stSidebar"],
-        .main, .block-container,
-        [class*="css"] {
-            font-family: 'Georgia', serif !important;
-            background-color: #ffffff !important;
-            color: #1a1a1a !important;
-        }
-
-        /* Override Streamlit CSS variables */
-        :root,
-        [data-theme="dark"],
-        [data-theme="light"] {
-            --background-color: #ffffff !important;
-            --secondary-background-color: #f7f7f7 !important;
-            --text-color: #1a1a1a !important;
-            --font: 'Georgia', serif !important;
-        }
-
+ 
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-
+ 
         .block-container {
-            padding-top: 2.5rem !important;
-            padding-bottom: 2rem !important;
-            padding-left: 3rem !important;
-            padding-right: 3rem !important;
+            padding-top: 2.5rem;
+            padding-bottom: 2rem;
+            padding-left: 3rem;
+            padding-right: 3rem;
         }
-
+ 
         .page-title {
             font-size: 1.8rem;
             font-weight: 700;
@@ -57,14 +36,14 @@ st.markdown("""
             color: #0f0f0f;
             margin: 0;
         }
-
+ 
         .page-subtitle {
             font-size: 0.85rem;
             color: #888888;
             margin-top: 0.3rem;
             font-style: italic;
         }
-
+ 
         .section-label {
             font-size: 0.7rem;
             font-weight: 600;
@@ -73,7 +52,13 @@ st.markdown("""
             color: #888888;
             margin-bottom: 0.8rem;
         }
-
+ 
+        .left-panel {
+            border-right: 1px solid #e5e5e5;
+            padding-right: 2rem;
+            min-height: 80vh;
+        }
+ 
         .stButton > button {
             background-color: #0f0f0f !important;
             color: #ffffff !important;
@@ -85,70 +70,30 @@ st.markdown("""
             width: 100% !important;
             margin-top: 0.5rem !important;
         }
-
+ 
         .stButton > button:hover {
             background-color: #333333 !important;
         }
-
-        /* Chat messages */
+ 
         [data-testid="stChatMessage"] {
-            background-color: #f9f9f9 !important;
-            border: 1px solid #efefef !important;
-            border-radius: 6px !important;
-            padding: 1rem !important;
-            margin-bottom: 0.8rem !important;
-            color: #1a1a1a !important;
+            background-color: #ffffff;
+            border: 1px solid #efefef;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
         }
-
-        [data-testid="stChatMessage"] p,
-        [data-testid="stChatMessage"] span {
-            color: #1a1a1a !important;
+ 
+        .stCaption {
+            color: #aaaaaa;
+            font-size: 0.75rem;
         }
-
-        /* Chat avatar — replace default emoji with styled initials */
-        [data-testid="stChatMessageAvatarUser"],
-        [data-testid="stChatMessageAvatarAssistant"] {
-            background-color: #0f0f0f !important;
-            border-radius: 50% !important;
-        }
-
-        /* Chat input */
-        [data-testid="stChatInput"] textarea,
-        [data-testid="stChatInputTextArea"] {
-            background-color: #f7f7f7 !important;
-            color: #1a1a1a !important;
-            border: 1px solid #e0e0e0 !important;
-        }
-
-        /* File uploader */
-        [data-testid="stFileUploader"] {
-            background-color: #f7f7f7 !important;
-            border: 1px dashed #cccccc !important;
-            color: #1a1a1a !important;
-        }
-
-        [data-testid="stFileUploader"] span,
-        [data-testid="stFileUploader"] p {
-            color: #555555 !important;
-        }
-
-        /* Success / error boxes */
-        [data-testid="stAlert"] {
-            background-color: #f0faf0 !important;
-            color: #1a1a1a !important;
-        }
-
-        .stCaption, [data-testid="stCaptionContainer"] {
-            color: #aaaaaa !important;
-            font-size: 0.75rem !important;
-        }
-
+ 
         .step-text {
             font-size: 0.82rem;
             color: #555555;
             line-height: 1.8;
         }
-
+ 
         hr {
             border: none;
             border-top: 1px solid #e5e5e5;
@@ -227,27 +172,23 @@ with right:
         if "messages" not in st.session_state:
             st.session_state.messages = []
  
-        USER_AVATAR = "https://api.dicebear.com/9.x/initials/svg?seed=U&backgroundColor=0f0f0f&textColor=ffffff&fontSize=40"
-        AI_AVATAR = "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=DocuMind&backgroundColor=e8e8e8"
-
         for msg in st.session_state.messages:
-            avatar = USER_AVATAR if msg["role"] == "user" else AI_AVATAR
-            with st.chat_message(msg["role"], avatar=avatar):
+            with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
                 if msg.get("sources"):
                     st.caption("Source: " + ", ".join(msg["sources"]))
-
+ 
         if query := st.chat_input("Ask a question about your documents"):
             st.session_state.messages.append({"role": "user", "content": query})
-            with st.chat_message("user", avatar=USER_AVATAR):
+            with st.chat_message("user"):
                 st.markdown(query)
-
-            with st.chat_message("assistant", avatar=AI_AVATAR):
+ 
+            with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
                     result = ask(query)
                 st.markdown(result["answer"])
                 st.caption("Source: " + ", ".join(result["sources"]))
-
+ 
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": result["answer"],
