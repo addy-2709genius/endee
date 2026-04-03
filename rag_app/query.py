@@ -57,8 +57,10 @@ def generate_answer(query: str, context_chunks: list[str]) -> str:
     context = format_context(context_chunks)
 
     prompt = f"""You are a helpful AI assistant. Answer the user's question
-based strictly on the provided context. If the answer is not in the context,
-say "I could not find relevant information in the document."
+using the provided context from the document. Be as helpful as possible —
+if the context contains relevant information, summarize and explain it clearly.
+Only say "I could not find relevant information in the document." if the context
+has absolutely no relation to the question.
 
 Context:
 {context}
