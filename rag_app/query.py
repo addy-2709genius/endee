@@ -52,9 +52,23 @@ def retrieve_chunks(query: str, top_k: int = TOP_K) -> tuple[list[str], list[dic
     return top_chunks, top_metadata
 
 
+MAX_CONTEXT_WORDS = 2000
+
+
 def generate_answer(query: str, context_chunks: list[str]) -> str:
     client = Groq(api_key=GROQ_API_KEY)
-    context = format_context(context_chunks)
+
+    # Truncate chunks to stay within Groq token limits
+    truncated_chunks = []
+    total_words = 0
+    for chunk in context_chunks:
+        chunk_words = len(chunk.split())
+        if total_words + chunk_words > MAX_CONTEXT_WORDS:
+            break
+        truncated_chunks.append(chunk)
+        total_words += chunk_words
+
+    context = format_context(truncated_chunks)
 
     prompt = f"""You are a helpful AI assistant. Answer the user's question
 using the provided context from the document. Be as helpful as possible —
@@ -69,14 +83,22 @@ Question: {query}
 
 Answer:"""
 
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=MAX_TOKENS,
-        temperature=0.2
-    )
-
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=MAX_TOKENS,
+            temperature=0.2
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        error_str = str(e).lower()
+        if "rate_limit" in error_str or "429" in error_str:
+            return "⚠️ Groq API rate limit reached. Please wait a few seconds and try again."
+        elif "401" in error_str or "authentication" in error_str:
+            return "⚠️ Invalid Groq API key. Please check your API key in the Streamlit secrets."
+        else:
+            return f"⚠️ Could not get a response from the AI: {str(e)}"
 
 
 def ask(query: str) -> dict:
