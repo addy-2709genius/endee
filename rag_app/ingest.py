@@ -2,9 +2,9 @@ import os
 import json
 import numpy as np
 import pdfplumber
-from sentence_transformers import SentenceTransformer
+from rag_app.query import load_embedding_model
 from rag_app.utils import clean_text, chunk_text
-from rag_app.config import EMBEDDING_MODEL, CHUNK_SIZE, CHUNK_OVERLAP, INDEX_DIR
+from rag_app.config import CHUNK_SIZE, CHUNK_OVERLAP, INDEX_DIR
 
 
 def extract_text_from_pdf(pdf_path: str) -> str:
@@ -18,7 +18,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 
 
 def build_index(data_dir: str) -> None:
-    model = SentenceTransformer(EMBEDDING_MODEL)
+    model = load_embedding_model()
     os.makedirs(INDEX_DIR, exist_ok=True)
 
     all_chunks = []
