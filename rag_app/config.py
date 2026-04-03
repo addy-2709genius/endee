@@ -13,7 +13,7 @@ CHUNK_OVERLAP = 50
 LLM_MODEL = "llama-3.1-8b-instant"
 MAX_TOKENS = 1024
 
-TOP_K = 10
+TOP_K = 5
 
 DATA_DIR = "data/documents"
 INDEX_DIR = "data/index"
