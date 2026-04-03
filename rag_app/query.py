@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+import streamlit as st
 from groq import Groq
 from sentence_transformers import SentenceTransformer
 from rag_app.utils import format_context
@@ -12,6 +13,11 @@ from rag_app.config import (
     TOP_K,
     INDEX_DIR
 )
+
+
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer(EMBEDDING_MODEL)
 
 
 def load_index():
@@ -33,7 +39,7 @@ def cosine_similarity(query_vec: np.ndarray, embeddings: np.ndarray) -> np.ndarr
 
 
 def retrieve_chunks(query: str, top_k: int = TOP_K) -> tuple[list[str], list[dict]]:
-    model = SentenceTransformer(EMBEDDING_MODEL)
+    model = load_embedding_model()
     embeddings, chunks, metadata = load_index()
 
     query_embedding = model.encode([query])[0]
