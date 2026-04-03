@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import numpy as np
 import streamlit as st
 from groq import Groq
@@ -83,22 +84,26 @@ Question: {query}
 
 Answer:"""
 
-    try:
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=MAX_TOKENS,
-            temperature=0.2
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        error_str = str(e).lower()
-        if "rate_limit" in error_str or "429" in error_str:
-            return "⚠️ Groq API rate limit reached. Please wait a few seconds and try again."
-        elif "401" in error_str or "authentication" in error_str:
-            return "⚠️ Invalid Groq API key. Please check your API key in the Streamlit secrets."
-        else:
-            return f"⚠️ Could not get a response from the AI: {str(e)}"
+    for attempt in range(3):
+        try:
+            response = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=MAX_TOKENS,
+                temperature=0.2
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            error_str = str(e).lower()
+            if "rate_limit" in error_str or "429" in error_str:
+                if attempt < 2:
+                    time.sleep(5)
+                    continue
+                return "⚠️ Groq API rate limit reached. Please wait a moment and try again."
+            elif "401" in error_str or "authentication" in error_str:
+                return "⚠️ Invalid Groq API key. Please check your API key in the Streamlit secrets."
+            else:
+                return f"⚠️ Could not get a response from the AI: {str(e)}"
 
 
 def ask(query: str) -> dict:
