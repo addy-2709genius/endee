@@ -80,7 +80,7 @@ def retrieve_chunks(query: str, top_k: int = TOP_K) -> tuple[list[str], list[dic
     return top_chunks, top_metadata
 
 
-MAX_CONTEXT_WORDS = 2000
+MAX_CONTEXT_WORDS = 4000
 
 
 def generate_answer(query: str, context_chunks: list[str]) -> str:
