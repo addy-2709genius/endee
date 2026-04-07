@@ -111,22 +111,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
  
  
-# ── Stale index detection ────────────────────────────────────────
-_index_exists = os.path.exists(os.path.join(INDEX_DIR, "embeddings.npy"))
-_pdfs_exist = os.path.exists(DATA_DIR) and any(f.endswith(".pdf") for f in os.listdir(DATA_DIR))
+# ── Stale index detection (once per session) ─────────────────────
+if not st.session_state.get("_stale_check_done"):
+    st.session_state["_stale_check_done"] = True
+    _index_exists = os.path.exists(os.path.join(INDEX_DIR, "embeddings.npy"))
+    _pdfs_exist = os.path.exists(DATA_DIR) and any(f.endswith(".pdf") for f in os.listdir(DATA_DIR))
 
-if _index_exists and is_index_stale():
-    if _pdfs_exist:
-        st.warning("Chunk settings changed — rebuilding index automatically...")
-        with st.spinner("Re-ingesting documents with new chunk settings..."):
-            build_index(DATA_DIR)
-        st.success("Index rebuilt with updated settings.")
-        st.rerun()
-    else:
-        st.warning(
-            "Chunk settings changed but no documents found. "
-            "Upload your PDFs and click **Build Index** to re-ingest."
-        )
+    if _index_exists and is_index_stale():
+        if _pdfs_exist:
+            with st.spinner("Chunk settings changed — rebuilding index..."):
+                build_index(DATA_DIR)
+            st.toast("Index rebuilt with updated chunk settings.", icon="✅")
+        else:
+            st.toast("Chunk settings changed. Re-upload PDFs and click Build Index.", icon="⚠️")
 
 # ── Two Column Layout ────────────────────────────────────────────
 left, right = st.columns([1, 2.5], gap="large")
