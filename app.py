@@ -75,14 +75,51 @@ st.markdown("""
             background-color: #333333 !important;
         }
  
-        [data-testid="stChatMessage"] {
-            background-color: #ffffff;
-            border: 1px solid #efefef;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 0.8rem;
+        /* Hide avatars but keep in DOM for CSS targeting */
+        [data-testid="chatAvatarIcon-user"],
+        [data-testid="chatAvatarIcon-assistant"] {
+            display: none !important;
         }
- 
+
+        /* Base chat message — no border, no background */
+        [data-testid="stChatMessage"] {
+            background: none !important;
+            border: none !important;
+            padding: 0.4rem 0 !important;
+            margin-bottom: 0 !important;
+            gap: 0 !important;
+        }
+
+        /* User message — right-aligned gray bubble */
+        [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+            display: flex !important;
+            justify-content: flex-end !important;
+        }
+
+        [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) > div {
+            background: #f0f0f0 !important;
+            border-radius: 18px 18px 4px 18px !important;
+            padding: 10px 16px !important;
+            max-width: 70% !important;
+            font-size: 0.9rem !important;
+            line-height: 1.6 !important;
+        }
+
+        /* Assistant message — full-width clean text */
+        [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+            border-bottom: 1px solid #f4f4f4 !important;
+            padding-bottom: 1rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) > div {
+            background: none !important;
+            padding: 0 !important;
+            width: 100% !important;
+            font-size: 0.9rem !important;
+            line-height: 1.75 !important;
+        }
+
         .stCaption {
             color: #aaaaaa;
             font-size: 0.75rem;
@@ -187,18 +224,17 @@ with right:
             st.session_state.messages = []
  
         for msg in st.session_state.messages:
-            avatar = "🧑‍💻" if msg["role"] == "user" else "🤖"
-            with st.chat_message(msg["role"], avatar=avatar):
+            with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
                 if msg.get("sources"):
                     st.caption("Source: " + ", ".join(msg["sources"]))
 
         if query := st.chat_input("Ask a question about your documents"):
             st.session_state.messages.append({"role": "user", "content": query})
-            with st.chat_message("user", avatar="🧑‍💻"):
+            with st.chat_message("user"):
                 st.markdown(query)
 
-            with st.chat_message("assistant", avatar="🤖"):
+            with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
                     result = ask(query)
                 st.markdown(result["answer"])
