@@ -24,6 +24,20 @@ def load_embedding_model():
     return SentenceTransformer(EMBEDDING_MODEL)
 
 
+def is_index_stale() -> bool:
+    """Returns True if the index was built with different chunk settings than current config."""
+    config_path = os.path.join(INDEX_DIR, "index_config.json")
+    if not os.path.exists(config_path):
+        return True
+    try:
+        with open(config_path, "r") as f:
+            saved = json.load(f)
+        return saved.get("chunk_size") != CHUNK_SIZE or saved.get("chunk_overlap") != CHUNK_OVERLAP
+    except Exception as e:
+        logger.warning("Could not read index config, assuming stale: %s", e)
+        return True
+
+
 def load_index():
     embeddings_path = os.path.join(INDEX_DIR, "embeddings.npy")
     chunks_path = os.path.join(INDEX_DIR, "chunks.json")

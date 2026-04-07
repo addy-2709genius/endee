@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from rag_app.ingest import build_index
-from rag_app.query import ask
+from rag_app.query import ask, is_index_stale
 from rag_app.config import DATA_DIR, INDEX_DIR
  
 st.set_page_config(
@@ -111,12 +111,29 @@ st.markdown("""
 """, unsafe_allow_html=True)
  
  
+# ── Stale index detection ────────────────────────────────────────
+_index_exists = os.path.exists(os.path.join(INDEX_DIR, "embeddings.npy"))
+_pdfs_exist = os.path.exists(DATA_DIR) and any(f.endswith(".pdf") for f in os.listdir(DATA_DIR))
+
+if _index_exists and is_index_stale():
+    if _pdfs_exist:
+        st.warning("Chunk settings changed — rebuilding index automatically...")
+        with st.spinner("Re-ingesting documents with new chunk settings..."):
+            build_index(DATA_DIR)
+        st.success("Index rebuilt with updated settings.")
+        st.rerun()
+    else:
+        st.warning(
+            "Chunk settings changed but no documents found. "
+            "Upload your PDFs and click **Build Index** to re-ingest."
+        )
+
 # ── Two Column Layout ────────────────────────────────────────────
 left, right = st.columns([1, 2.5], gap="large")
- 
+
 with left:
     st.markdown('<p class="section-label">Documents</p>', unsafe_allow_html=True)
- 
+
     uploaded_files = st.file_uploader(
         "Upload PDFs",
         type=["pdf"],

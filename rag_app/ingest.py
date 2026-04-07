@@ -77,6 +77,9 @@ def build_index(data_dir: str) -> None:
     with open(os.path.join(INDEX_DIR, "metadata.json"), "w") as f:
         json.dump(all_metadata, f)
 
+    with open(os.path.join(INDEX_DIR, "index_config.json"), "w") as f:
+        json.dump({"chunk_size": CHUNK_SIZE, "chunk_overlap": CHUNK_OVERLAP}, f)
+
 
 if __name__ == "__main__":
     from rag_app.config import DATA_DIR
