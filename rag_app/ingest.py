@@ -1,19 +1,33 @@
 import os
 import json
+import logging
 import numpy as np
 import pdfplumber
 from rag_app.query import load_embedding_model
 from rag_app.utils import clean_text, chunk_text
 from rag_app.config import CHUNK_SIZE, CHUNK_OVERLAP, INDEX_DIR
 
+logger = logging.getLogger(__name__)
+
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     full_text = ""
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                full_text += page_text + "\n"
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            for page_num, page in enumerate(pdf.pages, start=1):
+                try:
+                    page_text = page.extract_text()
+                    if page_text:
+                        full_text += page_text + "\n"
+                except Exception as e:
+                    logger.warning("Failed to extract text from page %d of '%s': %s", page_num, pdf_path, e)
+    except Exception as e:
+        logger.error("Cannot open PDF '%s': %s", pdf_path, e)
+        raise ValueError(f"Malformed or unreadable PDF '{os.path.basename(pdf_path)}': {e}") from e
+
+    if not full_text.strip():
+        raise ValueError(f"No extractable text found in '{os.path.basename(pdf_path)}'. It may be scanned or image-only.")
+
     return full_text
 
 
@@ -29,15 +43,29 @@ def build_index(data_dir: str) -> None:
     if not pdf_files:
         return
 
+    failed = []
     for filename in pdf_files:
         pdf_path = os.path.join(data_dir, filename)
-        raw_text = extract_text_from_pdf(pdf_path)
+        try:
+            raw_text = extract_text_from_pdf(pdf_path)
+        except ValueError as e:
+            logger.error("Skipping '%s': %s", filename, e)
+            failed.append(filename)
+            continue
+
         cleaned = clean_text(raw_text)
         chunks = chunk_text(cleaned, CHUNK_SIZE, CHUNK_OVERLAP)
 
         for i, chunk in enumerate(chunks):
             all_chunks.append(chunk)
             all_metadata.append({"source": filename, "chunk_id": i})
+
+    if failed:
+        logger.warning("Skipped %d file(s) due to errors: %s", len(failed), failed)
+
+    if not all_chunks:
+        logger.error("No chunks to index — all PDFs failed or were empty.")
+        return
 
     embeddings = model.encode(all_chunks, show_progress_bar=True)
 

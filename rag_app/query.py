@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import time
 import numpy as np
 import streamlit as st
@@ -15,6 +16,8 @@ from rag_app.config import (
     INDEX_DIR
 )
 
+logger = logging.getLogger(__name__)
+
 
 @st.cache_resource
 def load_embedding_model():
@@ -22,13 +25,37 @@ def load_embedding_model():
 
 
 def load_index():
-    embeddings = np.load(os.path.join(INDEX_DIR, "embeddings.npy"))
+    embeddings_path = os.path.join(INDEX_DIR, "embeddings.npy")
+    chunks_path = os.path.join(INDEX_DIR, "chunks.json")
+    metadata_path = os.path.join(INDEX_DIR, "metadata.json")
 
-    with open(os.path.join(INDEX_DIR, "chunks.json"), "r") as f:
-        chunks = json.load(f)
+    missing = [p for p in (embeddings_path, chunks_path, metadata_path) if not os.path.exists(p)]
+    if missing:
+        raise FileNotFoundError(
+            f"Index is incomplete. Missing file(s): {[os.path.basename(p) for p in missing]}. "
+            "Please upload and process documents first."
+        )
 
-    with open(os.path.join(INDEX_DIR, "metadata.json"), "r") as f:
-        metadata = json.load(f)
+    try:
+        embeddings = np.load(embeddings_path)
+    except Exception as e:
+        logger.error("Failed to load embeddings from '%s': %s", embeddings_path, e)
+        raise RuntimeError("Embeddings file is corrupt or unreadable.") from e
+
+    try:
+        with open(chunks_path, "r") as f:
+            chunks = json.load(f)
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+    except json.JSONDecodeError as e:
+        logger.error("Index JSON is malformed: %s", e)
+        raise RuntimeError("Index metadata is corrupt. Re-ingest your documents.") from e
+
+    if len(chunks) != len(metadata) or len(chunks) != embeddings.shape[0]:
+        raise RuntimeError(
+            f"Index is inconsistent: {embeddings.shape[0]} embeddings, "
+            f"{len(chunks)} chunks, {len(metadata)} metadata entries. Re-ingest your documents."
+        )
 
     return embeddings, chunks, metadata
 
@@ -96,14 +123,25 @@ Answer:"""
         except Exception as e:
             error_str = str(e).lower()
             if "rate_limit" in error_str or "429" in error_str:
+                wait = 5 * (attempt + 1)  # back-off: 5s, 10s, 15s
+                logger.warning("Groq rate limit hit (attempt %d/3). Retrying in %ds.", attempt + 1, wait)
                 if attempt < 2:
-                    time.sleep(5)
+                    time.sleep(wait)
                     continue
+                logger.error("Groq rate limit exceeded after 3 attempts.")
                 return "⚠️ Groq API rate limit reached. Please wait a moment and try again."
             elif "401" in error_str or "authentication" in error_str:
+                logger.error("Groq authentication failed — check GROQ_API_KEY.")
                 return "⚠️ Invalid Groq API key. Please check your API key in the Streamlit secrets."
+            elif "context_length" in error_str or "413" in error_str:
+                logger.error("Groq context length exceeded. Prompt too long: %d words.", len(prompt.split()))
+                return "⚠️ The document context is too large for the model. Try a shorter query or fewer documents."
             else:
-                return f"⚠️ Could not get a response from the AI: {str(e)}"
+                logger.exception("Unexpected Groq API error on attempt %d: %s", attempt + 1, e)
+                if attempt < 2:
+                    time.sleep(2)
+                    continue
+                return f"⚠️ Could not get a response from the AI after 3 attempts. Last error: {type(e).__name__}: {e}"
 
 
 def ask(query: str) -> dict:
