@@ -156,11 +156,10 @@ if not st.session_state.get("_stale_check_done"):
 
     if _index_exists and is_index_stale():
         if _pdfs_exist:
-            with st.spinner("Chunk settings changed — rebuilding index..."):
+            with st.spinner("Updating index..."):
                 build_index(DATA_DIR)
-            st.toast("Index rebuilt with updated chunk settings.", icon="✅")
         else:
-            st.toast("Chunk settings changed. Re-upload PDFs and click Build Index.", icon="⚠️")
+            st.toast("Please re-upload your PDFs and click Build Index.", icon="📄")
 
 # ── Two Column Layout ────────────────────────────────────────────
 left, right = st.columns([1, 2.5], gap="large")
